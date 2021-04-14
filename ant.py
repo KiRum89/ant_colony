@@ -6,29 +6,30 @@ class Ant:
     def __init__(self,pos,t):
         self.oldpos = None
         self.pos = pos
-        self.edge = None
         self.food = False
         self.path = [pos]
+        self.t = 0
+        self.going_back = False        
 
     def move(self,newpos):
         self.oldpos = self.pos
         self.pos=newpos 
         self.path.append(self.pos)
 
-    def decide(self,edges):
+    def decide(self,pherom_arr):
         alpha = 1
         children=w.getChildren(self.pos,w.N,w.M)        
 
-        weight = []
+        weights = []
         children2 = []
         for child in children:
-
+            # only forward
             if child!=self.oldpos:
+                #TODO: replace the loop with numpy
                 children2.append(child)
-                edge=tuple(sorted([self.pos, child]))
-                x = edges[edge]
-                weight.append(x)
-        idx = self.get_direction(np.array(weight),alpha)
+                x =pherom_arr[child]
+                weights.append(x)
+        idx = self.get_direction(np.array(weights),alpha)
         return children2[idx]
 
 
@@ -42,26 +43,17 @@ class Ant:
         v = np.random.random()
         idx = np.where(s0<=v)[0][-1]
         return idx
+
     def get_P(self,weights,alpha):
         return weights**alpha/np.sum(weights**alpha)
-
-    def deposit(self,x,edges):
-        assert(self.oldpos!=None)
-        key =tuple(sorted([self.oldpos,self.pos]))
-        if self.food==True:
-            #print('lalalala',x)
-            edges[key]+=x
-        
-    def deposit2(self,x,edges):
+         
+    def deposit(self,x,pherom_arr):
     
         assert(self.oldpos!=None)
-        key =tuple(sorted([self.oldpos,self.pos]))
-        if self.food==True:
-            #print('lalalala',x)
-            for i in range(0,len(self.path)-1):
-                key = tuple(sorted([self.path[i],self.path[i+1]))
-                edges[key]+=x
-                 
+        for pos in self.path:
+
+            pherom_arr[pos]+=x
+             
 
 
 if __name__ == "__main__":
