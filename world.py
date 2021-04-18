@@ -1,6 +1,7 @@
 import numpy as np
 import world as w
 N,M = 20,20
+H,W = 100,100
 def getChildren(n,N,M):
     children = []
     i,j=get_row_col(n,M)
