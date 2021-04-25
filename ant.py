@@ -5,19 +5,19 @@ import matplotlib.pyplot as plt
 plt.ion()
 import matplotlib.patches as patches
 import world as w
-
+#TODO: proper reflecton from the walls!
 class Ant:
     def __init__(self,x,y,r,phi,speed,t):
         self.x = x
         self.dx = 0
         self.y = y
         self.dy=0
-        self.r = r
+        self.r = r # radius of the vision sector
         self.scout = False
         self.t = 0
         self.phi = phi # direction of propagation 
-        self.alpha = 0.3 # angular aperture of the ant (width of the vision
-        self.speed  = speed
+        self.alpha = 0.3 # angular aperture of the ant eye (width of the vision region)
+        self.speed  = speed #speed < r 
         self.path = []
         self.phi_arr = []
 
@@ -40,9 +40,21 @@ class Ant:
         self.path.append([self.x,self.y])
         self.phi_arr.append(self.phi)
 
-    def decide(self,*pherom_arr):
-        self.phi = np.random.uniform(self.phi-self.alpha/2,self.phi+self.alpha/2) 
-        
+    def decide(self,*trail):
+        if len(trail)!=0:
+            print('jajajaj',trail)
+            arr=self.get_pherom_counts(trail[0])  
+            arr=sorted(arr, key = lambda el: el[1]) 
+            self.phi = arr[2][0]
+            if arr[2][1] == 0:
+            
+                self.phi = np.random.uniform(self.phi-self.alpha/2,self.phi+self.alpha/2) 
+        else:
+            print('trail',trail)
+            self.phi = np.random.uniform(self.phi-self.alpha/2,self.phi+self.alpha/2) 
+               
+            
+              
 
     def get_cell(self,x,y):
         
@@ -63,11 +75,10 @@ class Ant:
         else:
             trail[(i,j)].append([self.x,self.y])
 
-    def go_home(self,trail):
+    def get_pherom_counts(self,trail):
         #trail is a dict. Keys are cell (i,j), values are pheromome coordinates
         # count of pheromes in the central part 
         # count pgeromes in the sides
-        dphi = self.alpha/3
 
         pos = np.array([self.x, self.y])
         count1=0
@@ -84,17 +95,14 @@ class Ant:
                     vec_norm=np.sum(vec*vec)**0.5
                     theta=np.arccos(np.sum(vec*e)/vec_norm)
                     if np.pi/2+ant.alpha/2-ant.alpha/3<theta<np.pi/2+ant.alpha/2:
-
                         count1+=1
                     elif np.pi/2-ant.alpha/6<theta<np.pi/2+ant.alpha/6:
                         count2+=1
                     elif np.pi/2-ant.alpha/2<theta<np.pi/2-ant.alpha/2+ant.alpha/3:
-
                         count3+=1
                         
-        print(count1,count2,count3)
-             
-
+        return [(self.phi+ant.alpha/2,count1),(self.phi,count2),(self.phi-ant.alpha/2,count3)]
+        
         
     def get_sector_cells(self):
         # TODO: make more elegant 
@@ -131,17 +139,28 @@ class Ant:
 
  
 if __name__ == "__main__":
-    def run2(ants,cells):
+    def run2(ants,cells,T,thome):
         trail = {}
         for ant in ants: 
             print('------')
-            for t in range(0,1):
-                ant.mark_trail(trail)
-                ant.decide()
-                ant.move()
-                for cell in ant.get_sector_cells():
-                    print('cell {}'.format(cell))
+            for t in range(0,T):
+        
+                print(t) 
+                if t<thome:
+                    ant.mark_trail(trail)
+                    ant.decide()
+                    ant.move()
+                    for cell in ant.get_sector_cells():
+                        #print('cell {}'.format(cell))
+                        pass 
+                    
 
+                print(trail)
+                if t == thome:
+                    ant.phi = ant.phi + np.pi
+                if t>thome:
+                    ant.decide(trail)
+                    ant.move()
 
                 cells.append(ant.get_cell(ant.x,ant.y))
 
@@ -154,7 +173,7 @@ if __name__ == "__main__":
         def plot(ants):            
             for ant in ants:
                 path = np.array(ant.path)
-                ax.plot(path[:,0],path[:,1],'+')
+                ax.plot(path[:,0],path[:,1],'-')
                 #ax.plot(cells[:,0],cells[:,1],'+') 
 
         def onclick(event):
@@ -169,12 +188,12 @@ if __name__ == "__main__":
                 trail[cell].append([event.xdata,event.ydata])
    
             #print(trail)
-            get_part(ant,[event.xdata, event.ydata])
+            get_vision_sector(ant,[event.xdata, event.ydata])
             
 
         cid = fig.canvas.mpl_connect('button_press_event', onclick)
 
-        def get_part(ant,pher):
+        def get_vision_sector(ant,pher):
             pos = np.array([ant.x,ant.y])
              
             vec=np.array(pher)-pos
@@ -219,24 +238,24 @@ if __name__ == "__main__":
                ) 
                         
                     
-        #ant.go_home(trail)                
+        #ant.get_pherom_counts(trail)                
 
         plot(ants)    
-        for ant in ants:   
-            draw_sight(ant)
-        draw_grid(ax)
+        #for ant in ants:   
+        #    draw_sight(ant)
+        #draw_grid(ax)
         ax.set_xlim([0,w.W])
         ax.set_ylim([0,w.H])
         plt.show()
         return trail 
 
 
-    ants=[Ant(2,2,6,np.pi/3,0.6,0)]
+    ants=[Ant(50,50,6,np.pi/3,0.6,0)]
     ant = ants[0] 
 
     cells = []
 
 
                
-    trail=run2(ants,cells)
+    trail=run2(ants,cells,800,500)
     
