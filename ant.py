@@ -7,101 +7,119 @@ import matplotlib.patches as patches
 import world as w
 #TODO: proper reflecton from the walls!
 class Ant:
-    def __init__(self,x,y,r,phi,speed,t):
-        self.x = x
-        self.dx = 0
-        self.y = y
-        self.dy=0
-        self.r = r # radius of the vision sector
+    def __init__(self,r,R,phi,speed,t):
+        self.r = r
+
+
+
+        self.phi = phi # direction of propagation 
+        self.speed  = speed #speed < R 
+        self.dr = np.array([self.speed*np.cos(self.phi),self.speed*np.sin(self.phi)]) 
+
+        self.R = R # radius of the vision sector
         self.scout = False
         self.t = 0
-        self.phi = phi # direction of propagation 
         self.alpha = 0.3 # angular aperture of the ant eye (width of the vision region)
-        self.speed  = speed #speed < r 
-        self.path = []
-        self.phi_arr = []
+        self.path = [self.r]
+        self.phi_arr = [self.phi]
+
+    def rotMatrix(self,dphi):
+        return np.array([[np.cos(dphi),-np.sin(dphi)],[np.sin(dphi),np.cos(dphi)]])
+
+    def rotate(self,vec,dphi):
+        vec2 = np.dot(self.rotMatrix(dphi),vec)
+        return vec2
 
     def move(self):
-        #TODO properly handle the case when the ant is outside the box
-        self.dx = self.speed*np.cos(self.phi) 
-        self.dy=self.speed*np.sin(self.phi) 
 
-        x = self.x + self.dx
-        y = self.y + self.dy
-        if 0<=x<=w.W and 0<=y<=w.H:
-            pass
-        else:
-            self.phi = self.phi + np.pi
-            x = self.x + self.dx 
-            y = self.y + self.dy
-
-        self.x = x
-        self.y = y 
-        self.path.append([self.x,self.y])
+        self.r = self.r + self.dr 
+        self.path.append(self.r)
         self.phi_arr.append(self.phi)
 
     def decide(self,*trail):
+        dphi = np.random.uniform(-self.alpha/2,self.alpha/2) 
+
         if len(trail)!=0:
-            print('jajajaj',trail)
             arr=self.get_pherom_counts(trail[0])  
             arr=sorted(arr, key = lambda el: el[1]) 
             self.phi = arr[2][0]
             if arr[2][1] == 0:
             
-                self.phi = np.random.uniform(self.phi-self.alpha/2,self.phi+self.alpha/2) 
+                self.phi = self.phi + dphi
         else:
-            print('trail',trail)
-            self.phi = np.random.uniform(self.phi-self.alpha/2,self.phi+self.alpha/2) 
+            self.phi = self.phi + dphi
                
             
               
 
-    def get_cell(self,x,y):
+    def get_cell(self,r):
         
         #TODO: improve 
         X=np.linspace(0,w.W,w.W)
         Y = np.linspace(0,w.H,w.H)
-        dx=np.diff(X)[0]
-        idx_x = np.where(X<=x)[0][-1]
-        idx_y = np.where(Y<=y)[0][-1]
+        idx_x = np.where(X<=r[0])[0][-1]
+        idx_y = np.where(Y<=r[1])[0][-1]
         return [idx_x,idx_y]
 
     def mark_trail(self,trail):
         # trail can be scout trail - trail ant passed before food
         # trail_cargo - ant has food and goes follows the trail_scout
-        i,j=self.get_cell(self.x, self.y)
+        i,j=self.get_cell(self.r)
         if (i,j) not in trail:
-            trail[(i,j)]=[[self.x,self.y]]
+            trail[(i,j)]=[self.r]
         else:
-            trail[(i,j)].append([self.x,self.y])
+            trail[(i,j)].append(self.r)
 
     def get_pherom_counts(self,trail):
         #trail is a dict. Keys are cell (i,j), values are pheromome coordinates
         # count of pheromes in the central part 
         # count pgeromes in the sides
 
-        pos = np.array([self.x, self.y])
-        count1=0
-        count2=0 #count of pheromones in the central part
-        count3=0
-        e = np.array([np.sin(self.phi),-np.cos(self.phi)])
+        m = {}
+        NUM_SEC = 4 
+        angles = np.linspace(-self.alpha/2,self.alpha/2,NUM_SEC)
+        
+        # ant system of coordinates
+        ex = self.dr/self.norm(self.dr) 
+        ey = self.rotate(ex,np.pi/2)
         for (i,j) in self.get_sector_cells():
             pheroms = trail.get((i,j),None)         
-            
             if pheroms!=None:
                 for pher in pheroms:
-                    print(pheroms)
-                    vec=np.array(pher)-pos
-                    vec_norm=np.sum(vec*vec)**0.5
-                    theta=np.arccos(np.sum(vec*e)/vec_norm)
-                    if np.pi/2+ant.alpha/2-ant.alpha/3<theta<np.pi/2+ant.alpha/2:
-                        count1+=1
-                    elif np.pi/2-ant.alpha/6<theta<np.pi/2+ant.alpha/6:
-                        count2+=1
-                    elif np.pi/2-ant.alpha/2<theta<np.pi/2-ant.alpha/2+ant.alpha/3:
-                        count3+=1
-                        
-        return [(self.phi+ant.alpha/2,count1),(self.phi,count2),(self.phi-ant.alpha/2,count3)]
+                    print('----')
+                    print('pher', pher)
+                    vec=(pher-self.r)
+                    vec = vec/self.norm(vec)
+                    vec_y_ant = np.dot(vec,ey)
+                    idx1=np.where(np.sin(angles)<=vec_y_ant)[0] # last element with smaller angle
+                    idx2=np.where(np.sin(angles)>=vec_y_ant)[0] # first element with larger angle 
+                    print('lalalal',idx1,idx2)
+                    if len(idx1)!=0 and len(idx2)!=0: 
+
+
+                        idx1 = idx1[-1]
+                        idx2 = idx2[0]
+                        angle = 0.5*(angles[idx1] + angles[idx2])
+
+                        print('angle',angle)
+                        angle = angle + self.phi
+                        if angle in m:
+                            print('asdasd',m)
+                            m[angle]+=1
+                        else:
+                            print('ang', angle, self.phi)
+                            m[angle]=1
+        return m
+        ret = []
+
+        print('mm',m)  
+        for k in m:
+            ret.append((k,m[k]))
+        return ret
+
+             
+    def norm(self,vec):
+        return np.sum(vec**2)**0.5
         
         
     def get_sector_cells(self):
@@ -109,28 +127,26 @@ class Ant:
         # return generator - yes
 
         #finidh finding the cells that a covered by the sector (it will be a rectangular. Find the min y, cover till y max, move until the x of the 3d vortex) 
-        x = self.x
-        y = self.y
 
-        x1 = self.x+self.r*np.cos(self.phi-self.alpha/2)    
-        y1= self.y+self.r*np.sin(self.phi-self.alpha/2)    
-
-        x2 = self.x+self.r*np.cos(self.phi+self.alpha/2)    
-        y2 = self.y+self.r*np.sin(self.phi+self.alpha/2)    
+        vertices = [self.r]
+        for ang in [-self.alpha/2,self.alpha/2]:
+                r = self.r + np.array([self.R*np.cos(self.phi-ang),self.R*np.sin(self.phi-ang)])    
+                vertices.append(r)        
+        idxs = [] 
         
-        [xi,yi]=self.get_cell(x,y)
-        [x1i,y1i] = self.get_cell(x1,y1)
-        [x2i,y2i]=self.get_cell(x2,y2)
+        for r in vertices: 
+            idxs.append(self.get_cell(r))
+        idxs = np.array(idxs)
 
-        xi_min=min(xi,x1i,x2i)
-        xi_max = max(xi,x1i,x2i)
+        idx_x_min=np.min(idxs[:,0])
+        idx_y_min=np.min(idxs[:,1])
+        idx_x_max=np.max(idxs[:,0])
+        idx_y_max=np.max(idxs[:,1])
 
-        yi_min=min(yi,y1i,y2i)
-        yi_max=max(yi,y1i,y2i)
 
-        print(xi_min,xi_max,yi_min,yi_max) 
-        for i in range(xi_min,xi_max+1):  
-            for j in range(yi_min, yi_max+1):
+
+        for i in range(idx_x_min,idx_x_max+1):  
+            for j in range(idx_y_min,idx_y_max+1):  
                 yield (i,j)
         
 
@@ -141,28 +157,6 @@ class Ant:
 if __name__ == "__main__":
     def run2(ants,cells,T,thome):
         trail = {}
-        for ant in ants: 
-            print('------')
-            for t in range(0,T):
-        
-                print(t) 
-                if t<thome:
-                    ant.mark_trail(trail)
-                    ant.decide()
-                    ant.move()
-                    for cell in ant.get_sector_cells():
-                        #print('cell {}'.format(cell))
-                        pass 
-                    
-
-                print(trail)
-                if t == thome:
-                    ant.phi = ant.phi + np.pi
-                if t>thome:
-                    ant.decide(trail)
-                    ant.move()
-
-                cells.append(ant.get_cell(ant.x,ant.y))
 
         cells = np.array(cells)
         fig,ax = plt.subplots(1,1)
@@ -180,36 +174,19 @@ if __name__ == "__main__":
             print('%s click: button=%d, x=%d, y=%d, xdata=%f, ydata=%f' %
                   ('double' if event.dblclick else 'single', event.button,
                    event.x, event.y, event.xdata, event.ydata))
-            print(ant.get_cell(event.xdata,event.ydata))
-            cell = tuple(ant.get_cell(event.xdata,event.ydata))
+            print(ant.get_cell(np.array([event.xdata,event.ydata])))
+            cell = tuple(ant.get_cell(np.array([event.xdata,event.ydata])))
             if cell not in trail:
                 trail[cell]=[[event.xdata,event.ydata]]
             else:
                 trail[cell].append([event.xdata,event.ydata])
    
             #print(trail)
-            get_vision_sector(ant,[event.xdata, event.ydata])
+            print('pherom counts{}'.format(ant.get_pherom_counts(trail)))
             
 
         cid = fig.canvas.mpl_connect('button_press_event', onclick)
 
-        def get_vision_sector(ant,pher):
-            pos = np.array([ant.x,ant.y])
-             
-            vec=np.array(pher)-pos
-            #print(vec)
-            vec_norm=np.sum(vec*vec)**0.5
-            e = np.array([np.sin(ant.phi),-np.cos(ant.phi)])
-            theta=np.arccos(np.sum(vec*e)/vec_norm)
-            #print(theta,ant.phi,e,vec) 
-            print(np.pi/2+ant.alpha/2,theta,np.pi/2+ant.alpha/2-ant.alpha/3)
-            if np.pi/2+ant.alpha/2-ant.alpha/3<theta<np.pi/2+ant.alpha/2:
-                print('l') 
-            elif np.pi/2-ant.alpha/6<theta<np.pi/2+ant.alpha/6:
-                print('c')
-    
-            elif np.pi/2-ant.alpha/2<theta<np.pi/2-ant.alpha/2+ant.alpha/3:
-                print('r')
 
 
         def draw_sight(ant):
@@ -221,7 +198,7 @@ if __name__ == "__main__":
                 ax.add_patch(
                 patches.Wedge(
                     (x, y),         # (x,y)
-                    ant.r,            # radius
+                    ant.R,            # radius
                     phi1,             # theta1 (in degrees)
                     phi2,            # theta2
                     color="g", alpha=0.2
@@ -230,32 +207,33 @@ if __name__ == "__main__":
                 ax.add_patch(
                 patches.Wedge(
                     (x, y),         # (x,y)
-                    ant.r,            # radius
+                    ant.R,            # radius
                     phi1+np.rad2deg(ant.alpha/3),             # theta1 (in degrees)
                     phi2-np.rad2deg(ant.alpha/3),            # theta2
                     color="r", alpha=0.2
                     )
                ) 
-                        
+            
+            ax.arrow(ant.r[0],ant.r[1],ant.dr[0],ant.dr[1])            
                     
         #ant.get_pherom_counts(trail)                
 
         plot(ants)    
-        #for ant in ants:   
-        #    draw_sight(ant)
-        #draw_grid(ax)
+        for ant in ants:   
+            draw_sight(ant)
+        draw_grid(ax)
         ax.set_xlim([0,w.W])
         ax.set_ylim([0,w.H])
         plt.show()
         return trail 
 
 
-    ants=[Ant(50,50,6,np.pi/3,0.6,0)]
+    ants=[Ant(np.array([1,1]),6,np.pi/3,0.6,0)]
     ant = ants[0] 
 
     cells = []
 
 
                
-    trail=run2(ants,cells,800,500)
+    trail=run2(ants,cells,1,1)
     
