@@ -52,23 +52,6 @@ class Mover:
         ant.move() 
         #print(ant.get_pherom_counts(trail))
 
-#def onclick(event):
-#    cell = tuple(ant.get_cell(np.array([event.xdata,event.ydata])))
-#    if cell not in trail:
-#        trail[cell]=[np.array([event.xdata,event.ydata])]
-#    else:
-#        trail[cell].append(np.array([event.xdata,event.ydata]))
-#    line, = ax.plot(event.xdata,event.ydata,'+')
-#    linebuilder = LineBuilder(line)
-
-def draw_sight(ant,ax):
-    ex = ant.dr/ant.norm(ant.dr) 
-    ey = ant.rotate(ex,np.pi/2)
-    angles = np.linspace(-ant.alpha/2,ant.alpha/2,4)
-    for ang in angles:
-        d =ant.R*(np.cos(ang)*ex + np.sin(ang)*ey) 
-        ax.arrow(ant.r[0],ant.r[1],d[0],d[1])
-
 ant=Ant(np.array([1,1]),5,np.pi/3,0.1,0)
            
 trail={}
@@ -81,7 +64,7 @@ arrows=[ax.arrow(0,0,5,5) for _ in range(0,4)]
 mover=Mover(arrows)
 
 #draw_sight(ant,ax)
-ax.set_xlim([0,10])
-ax.set_ylim([0,10])
+ax.set_xlim([0,w.W])
+ax.set_ylim([0,w.H])
 
 

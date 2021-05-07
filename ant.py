@@ -15,11 +15,11 @@ class Ant:
         self.dr = np.array([self.speed*np.cos(self.phi),self.speed*np.sin(self.phi)]) 
         self.next_dr = np.array([self.speed*np.cos(self.phi),self.speed*np.sin(self.phi)]) 
         self.R = R # radius of the vision sector
-        self.scout = False
+        self.scout = True
+        self.beta = np.pi/10
         self.t = 0
-        self.alpha = np.pi/2 # angular aperture of the ant eye (width of the vision region)
+        self.alpha = np.pi/3 # angular aperture of the ant eye (width of the vision region)
         self.path = [self.r]
-        self.phi_arr = [self.phi]
 
     def rotMatrix(self,dphi):
         return np.array([[np.cos(dphi),-np.sin(dphi)],[np.sin(dphi),np.cos(dphi)]])
@@ -40,7 +40,7 @@ class Ant:
         
 
     def decide(self,*trail):
-        dphi = np.random.uniform(-self.alpha/2,self.alpha/2) 
+        dphi = np.random.uniform(-self.beta/2,self.beta/2) 
         ex = self.dr/self.norm(self.dr) 
         self.dr = self.speed*self.rotate(ex,dphi)
         if len(trail)!=0:
@@ -161,7 +161,7 @@ class Ant:
  
 if __name__ == "__main__":
     def run2(ants,cells,T):
-        trail = {}
+        trail_home = {}
 
         cells = np.array(cells)
         fig,ax = plt.subplots(1,1)
@@ -174,38 +174,12 @@ if __name__ == "__main__":
                 path = np.array(ant.path)
                 ax.plot(path[T1:T2,0],path[T1:T2,1],'+')
                 #ax.plot(cells[:,0],cells[:,1],'+') 
-
-        def onclick(event):
-            print('%s click: button=%d, x=%d, y=%d, xdata=%f, ydata=%f' %
-                  ('double' if event.dblclick else 'single', event.button,
-                   event.x, event.y, event.xdata, event.ydata))
-            cell = tuple(ant.get_cell(np.array([event.xdata,event.ydata])))
-            if cell not in trail:
-                trail[cell]=[[event.xdata,event.ydata]]
-            else:
-                trail[cell].append([event.xdata,event.ydata])
-            
-
-        #cid = fig.canvas.mpl_connect('button_press_event', onclick)
-
-
-
-        def draw_sight(ant):
-            phis = np.array(ant.phi_arr)
-            path = np.array(ant.path)
-            ex = ant.dr/ant.norm(ant.dr) 
-            ey = ant.rotate(ex,np.pi/2)
-            angles = np.linspace(-ant.alpha/2,ant.alpha/2,4)
-            for ang in angles:
-                d =ant.R*(np.cos(ang)*ex + np.sin(ang)*ey) 
-                ax.arrow(ant.r[0],ant.r[1],d[0],d[1])
-            #ax.arrow(ant.r[0],ant.r[1],ant.dr[0],ant.dr[1])            
                     
         #ant.get_pherom_counts(trail)                
         for ant in ants:   
             for t in range(0,T):
                 if t<T//2:
-                    ant.mark_trail(trail)
+                    ant.mark_trail(trail_home)
                     ant.move()
                     ant.decide()            
                 
@@ -214,7 +188,7 @@ if __name__ == "__main__":
                        ant.dr = -ant.dr 
 
                        ant.move()
-                    #ant.mark_trail(trail)
+                #ant.mark_trail(trail)
                     else:
                         if t%5==0:
      
