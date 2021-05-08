@@ -18,7 +18,7 @@ class Ant:
         self.scout = True
         self.beta = np.pi/10
         self.t = 0
-        self.alpha = np.pi/3 # angular aperture of the ant eye (width of the vision region)
+        self.alpha = np.pi/5 # angular aperture of the ant eye (width of the vision region)
         self.path = [self.r]
 
     def rotMatrix(self,dphi):
