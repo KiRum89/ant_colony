@@ -22,7 +22,12 @@ if __name__ == "__main__":
                 else:
                     ax.plot(path[t:,0],path[t:,1],'+')
 
-
+        def plot_trail(trail,c):
+            for (i,j) in trail:
+                for pherom in trail[(i,j)]:
+                    coor = pherom[0]
+                    ax.scatter(coor[0],coor[1],marker='x',c=c)
+                    
                     
         #ant.get_pherom_counts(trail)                
         ants=[Ant(np.array([1,1]),5,np.pi/2,0.1,0)]
@@ -43,10 +48,12 @@ if __name__ == "__main__":
                     break
 
                 if ant.scout == True:
+                    ant.t = t
                     ant.mark_trail(trail_scout)
                     ant.move()
                     ant.decide(trail_return)            
                 else:
+                    ant.t = t
                     ant.mark_trail(trail_return)
                     ant.move()
                     ant.decide(trail_scout)            
@@ -56,5 +63,8 @@ if __name__ == "__main__":
         ax.add_patch(circle1)
         circle2 = plt.Circle((10,10), 5, color='r') 
         ax.add_patch(circle2)
-        plot(ants)
+        plot_trail(trail_scout,'r')
+        plot_trail(trail_return,'g')
+
+        #plot(ants)
 

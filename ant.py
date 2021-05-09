@@ -67,10 +67,11 @@ class Ant:
         # trail can be scout trail - trail ant passed before food
         # trail_cargo - ant has food and goes follows the trail_scout
         i,j=self.get_cell(self.r)
+        val = (self.r,self.t)
         if (i,j) not in trail:
-            trail[(i,j)]=[self.r]
+            trail[(i,j)]=[val]
         else:
-            trail[(i,j)].append(self.r)
+            trail[(i,j)].append(val)
 
     def get_pherom_counts(self,trail):
         #trail is a dict. Keys are cell (i,j), values are pheromome coordinates
@@ -93,7 +94,8 @@ class Ant:
             pheroms = trail.get((i,j),None)         
             if pheroms!=None:
                 for pher in pheroms:
-                    vec=(pher-self.r)
+                    coor = pher[0] 
+                    vec=(coor-self.r)
                     if self.norm(vec)<=self.R:
                         vec = vec/self.norm(vec)
                         vec_y_ant = np.dot(vec,ey)
