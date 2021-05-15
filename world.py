@@ -1,16 +1,16 @@
 import numpy as np
 import world as w
-H,W = 100,100
+H,W = 800,800
 
-R = 10
-r0 = np.array([60,60])
- 
+R = 100
+r0 = np.array([W/2,H/2])
+
 def isFood(r):
     # r ant coordinate
     # r0 food circle center
     # R food circle radius
-    R = 10
-    r0 = np.array([60,60])
+    R = 100
+    r0 = np.array([W/2,H/2])
  
     if np.sum((r-r0)**2)**0.5<R:
         return True
@@ -28,11 +28,11 @@ def isHome(r):
     else:
         return False
  
-def evaporate(pherom_arr, rate):
-    pass
-
-if __name__=="__main__":
-    N,M = 100,100
-    board = init_board(N,M)
-    weights = init_weights(N,M)
+def evap(trail, timer,ctime):
+    # ctime current time
+    # if timer is exceeded, delet the pheromone 
+    
+    for (i,j) in trail:
+        pherom2=[pherom for pherom in trail[(i,j)] if (ctime-pherom[1])<timer]
+        trail[(i,j)] = pherom2
 

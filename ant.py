@@ -20,6 +20,8 @@ class Ant:
         self.t = 0
         self.alpha = np.pi/5 # angular aperture of the ant eye (width of the vision region)
         self.path = [self.r]
+        NUM_SEC = 4 
+        self.angles = np.linspace(-self.alpha/2,self.alpha/2,NUM_SEC)
 
     def rotMatrix(self,dphi):
         return np.array([[np.cos(dphi),-np.sin(dphi)],[np.sin(dphi),np.cos(dphi)]])
@@ -56,8 +58,8 @@ class Ant:
         self.next_dr = self.dr 
 
     def get_cell(self,r):
-        X=np.linspace(0,w.W,w.W)
-        Y = np.linspace(0,w.H,w.H)
+        X=np.linspace(0,w.W,w.W//self.speed)
+        Y = np.linspace(0,w.H,w.H//self.speed)
         idx_x = np.where(X<=r[0])[0][-1]
         idx_y = np.where(Y<=r[1])[0][-1]
 
@@ -79,18 +81,18 @@ class Ant:
         # count pgeromes in the sides
 
         m = {}
-        NUM_SEC = 4 
-        angles = np.linspace(-self.alpha/2,self.alpha/2,NUM_SEC)
-        # ant system of coordinates
+        #ant system of coordinates
         ex = self.dr/self.norm(self.dr) 
         ey = self.rotate(ex,np.pi/2)
 
-        angles_av = 0.5*(angles[0:-1]+angles[1:])
+        angles_av = 0.5*(self.angles[0:-1]+self.angles[1:])
         for angle in angles_av:
             dr = tuple(self.speed*(np.cos(angle)*ex+np.sin(angle)*ey)) # convert to touple for hashable
             m[dr]=0
-
-        for (i,j) in self.get_sector_cells():
+        sector_cells = self.get_sector_cells()
+        count = 0
+        for (i,j) in sector_cells:
+            count+=1
             pheroms = trail.get((i,j),None)         
             if pheroms!=None:
                 for pher in pheroms:
@@ -99,16 +101,16 @@ class Ant:
                     if self.norm(vec)<=self.R:
                         vec = vec/self.norm(vec)
                         vec_y_ant = np.dot(vec,ey)
-                        idx1=np.where(np.sin(angles)<=vec_y_ant)[0] # last element with smaller angle
-                        idx2=np.where(np.sin(angles)>=vec_y_ant)[0] # first element with larger angle 
+                        idx1=np.where(np.sin(self.angles)<=vec_y_ant)[0] # last element with smaller angle
+                        idx2=np.where(np.sin(self.angles)>=vec_y_ant)[0] # first element with larger angle 
                         if len(idx1)!=0 and len(idx2)!=0: 
                             idx1 = idx1[-1]
                             idx2 = idx2[0]
-                            angle = 0.5*(angles[idx1] + angles[idx2])
+                            angle = 0.5*(self.angles[idx1] + self.angles[idx2])
                             assert(np.abs(idx1-idx2)==1)
                             dr = tuple(self.speed*(np.cos(angle)*ex+np.sin(angle)*ey)) # convert to touple for hashable
                             m[dr]+=1
-            ret = []
+        ret = []
         for k in m:
             ret.append((k,m[k]))
         return ret
