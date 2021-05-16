@@ -2,11 +2,12 @@ import numpy as np
 import matplotlib
 import matplotlib.pyplot as plt
 
-plt.ion()
 import matplotlib.patches as patches
 import world as w
 #TODO: proper reflecton from the walls!
 class Ant:
+
+    
     def __init__(self,r,R,phi,speed,t):
         self.r = r
 
@@ -22,6 +23,8 @@ class Ant:
         self.path = [self.r]
         NUM_SEC = 4 
         self.angles = np.linspace(-self.alpha/2,self.alpha/2,NUM_SEC)
+        self.X=np.linspace(0,w.W,w.W//self.speed)
+        self.Y = np.linspace(0,w.H,w.H//self.speed)
 
     def rotMatrix(self,dphi):
         return np.array([[np.cos(dphi),-np.sin(dphi)],[np.sin(dphi),np.cos(dphi)]])
@@ -58,10 +61,8 @@ class Ant:
         self.next_dr = self.dr 
 
     def get_cell(self,r):
-        X=np.linspace(0,w.W,w.W//self.speed)
-        Y = np.linspace(0,w.H,w.H//self.speed)
-        idx_x = np.where(X<=r[0])[0][-1]
-        idx_y = np.where(Y<=r[1])[0][-1]
+        idx_x = np.where(self.X<=r[0])[0][-1]
+        idx_y = np.where(self.Y<=r[1])[0][-1]
 
         return [idx_x,idx_y]
 
@@ -96,6 +97,7 @@ class Ant:
             pheroms = trail.get((i,j),None)         
             if pheroms!=None:
                 for pher in pheroms:
+                    #print('pher',len(pheroms))
                     coor = pher[0] 
                     vec=(coor-self.r)
                     if self.norm(vec)<=self.R:
@@ -117,7 +119,7 @@ class Ant:
 
              
     def norm(self,vec):
-        return np.sum(vec**2)**0.5
+        return (vec**2).sum()**0.5
         
         
     def get_sector_cells(self):
@@ -164,6 +166,8 @@ class Ant:
 
  
 if __name__ == "__main__":
+
+    plt.ion()
     def run2(ants,cells,T):
         trail_home = {}
 
