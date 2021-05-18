@@ -75,6 +75,7 @@ class Ant:
             trail[(i,j)]=[val]
         else:
             trail[(i,j)].append(val)
+        return (i,j)
 
     def get_pherom_counts(self,trail):
         #trail is a dict. Keys are cell (i,j), values are pheromome coordinates

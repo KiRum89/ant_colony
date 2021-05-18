@@ -10,7 +10,7 @@ from area import CircArea
  
 if __name__ == "__main__":
     
-        T = 9000 # number of steps
+        T = 900 # number of steps
         trail_scout = {} # no food
         trail_return = {} # 
         fig,ax = plt.subplots(1,1)
@@ -88,8 +88,8 @@ if __name__ == "__main__":
 
         cProfile.run('myrun()')        
         #myrun()
-        plot_trail(trail_scout,'r')
-        plot_trail(trail_return,'g')
+        #plot_trail(trail_scout,'r')
+        #plot_trail(trail_return,'g')
 
 
 
