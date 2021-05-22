@@ -10,9 +10,9 @@ from area import CircArea
  
 if __name__ == "__main__":
     
-        T = 900 # number of steps
-        trail_scout = {} # no food
-        trail_return = {} # 
+        T = 10000 # number of steps
+        trail_scout=np.zeros((w.H,w.W))
+        trail_return =np.zeros((w.H,w.W))
         fig,ax = plt.subplots(1,1)
         col = (0,255,0)
         green = (0,255,0)
@@ -30,13 +30,14 @@ if __name__ == "__main__":
 
         def plot_trail(trail,c):
             arr = []
-            for (i,j) in trail:
-                for pherom in trail[(i,j)]:
-                    if len(pherom)!=0:
-                        coor = pherom[0]
-                        arr.append(coor) 
+            for i in range(0,w.N):
+
+                for j in range(0,w.M):
+                        coor = [i,j]  
+                        if trail[i,j]!=0:
+                            arr.append(coor) 
             arr = np.asarray(arr)
-            plt.plot(arr[:,0],arr[:,1],'x',c=c)
+            plt.plot(arr[:,0],arr[:,1],'-x',c=c)
 
         def run_ant(ant,t,areas):
             home,food = areas
@@ -69,7 +70,7 @@ if __name__ == "__main__":
             home = CircArea(green,[30,30],30)
 
 
-            ants=[Ant(np.array([1,1]),30,np.pi/2,5,0) for _ in range(0,10)]
+            ants=[Ant(np.array([1,1]),5,np.pi/2,1,0) for _ in range(0,100)]
 
             areas = [home,food]
             for t in range(0,T):
@@ -78,10 +79,13 @@ if __name__ == "__main__":
                     ant.t = t
                     run_ant(ant,t,areas)
                                 
-                w.evap(trail_scout,300,t)
-                w.evap(trail_return,300,t)
+                #w.evap(trail_scout,300,t)
+                #w.evap(trail_return,300,t)
 
                 t += 1
+                if t%100==0:
+                    print(t)
+            
  
                 
 

@@ -23,9 +23,7 @@ class Ant:
         self.path = [self.r]
         NUM_SEC = 4 
         self.angles = np.linspace(-self.alpha/2,self.alpha/2,NUM_SEC)
-        self.X=np.linspace(0,w.W,w.W//self.speed)
-        self.Y = np.linspace(0,w.H,w.H//self.speed)
-
+        
     def rotMatrix(self,dphi):
         return np.array([[np.cos(dphi),-np.sin(dphi)],[np.sin(dphi),np.cos(dphi)]])
 
@@ -40,80 +38,76 @@ class Ant:
             self.dr[0] =-self.dr[0]
         elif r[1]>w.H or r[1]<0:
              self.dr[1] =-self.dr[1]
+        
         self.r = self.r + self.dr 
         self.path.append(self.r)
         
 
-    def decide(self,*trail):
+    def decide(self,trail):
         dphi = np.random.uniform(-self.beta/2,self.beta/2) 
         ex = self.dr/self.norm(self.dr) 
         self.dr = self.speed*self.rotate(ex,dphi)
-        if len(trail)!=0:
-            arr=self.get_pherom_counts(trail[0])  
-            if len(arr)!=0:
-                arr=sorted(arr, key = lambda el: el[1]) 
-                counts=np.asarray([el[1] for el in arr])
-                if np.any(counts!=0):
-                    self.dr = np.asarray(arr[2][0])
-                else:
-                    pass
-     
-        self.next_dr = self.dr 
+        arr=self.get_pherom_counts(trail)  
+        arr=sorted(arr, key = lambda el: el[1]) 
+        counts=np.asarray([el[1] for el in arr])
+        if np.any(counts!=0):
+            self.dr = np.asarray(arr[-1][0])
+ 
 
-    def get_cell(self,r):
-        idx_x = np.where(self.X<=r[0])[0][-1]
-        idx_y = np.where(self.Y<=r[1])[0][-1]
-
-        return [idx_x,idx_y]
+    def get_cell(self,r,N,M):
+        #e.g. N,M = w.W//ant.speed-1
+        x,y = r
+        ax,ay = w.W/N,w.H/M
+        return [int(x/ax),int(y/ay)]
+        
 
     def mark_trail(self,trail):
         # trail can be scout trail - trail ant passed before food
         # trail_cargo - ant has food and goes follows the trail_scout
-        i,j=self.get_cell(self.r)
-        val = (self.r,self.t)
-        if (i,j) not in trail:
-            trail[(i,j)]=[val]
-        else:
-            trail[(i,j)].append(val)
-        return (i,j)
+        i,j=self.get_cell(self.r,w.N,w.M)
+        trail[i,j]+=1
 
     def get_pherom_counts(self,trail):
         #trail is a dict. Keys are cell (i,j), values are pheromome coordinates
         # count of pheromes in the central part 
-        # count pgeromes in the sides
+        # count pheromes in the sides
 
-        m = {}
+        m={}
+        ax,ay=w.W/w.M, w.H/w.N
+
         #ant system of coordinates
         ex = self.dr/self.norm(self.dr) 
         ey = self.rotate(ex,np.pi/2)
 
         angles_av = 0.5*(self.angles[0:-1]+self.angles[1:])
         for angle in angles_av:
-            dr = tuple(self.speed*(np.cos(angle)*ex+np.sin(angle)*ey)) # convert to touple for hashable
-            m[dr]=0
+            dr = self.speed*(np.cos(angle)*ex+np.sin(angle)*ey) 
+
         sector_cells = self.get_sector_cells()
-        count = 0
         for (i,j) in sector_cells:
-            count+=1
-            pheroms = trail.get((i,j),None)         
-            if pheroms!=None:
-                for pher in pheroms:
-                    #print('pher',len(pheroms))
-                    coor = pher[0] 
-                    vec=(coor-self.r)
-                    if self.norm(vec)<=self.R:
-                        vec = vec/self.norm(vec)
-                        vec_y_ant = np.dot(vec,ey)
-                        idx1=np.where(np.sin(self.angles)<=vec_y_ant)[0] # last element with smaller angle
-                        idx2=np.where(np.sin(self.angles)>=vec_y_ant)[0] # first element with larger angle 
-                        if len(idx1)!=0 and len(idx2)!=0: 
-                            idx1 = idx1[-1]
-                            idx2 = idx2[0]
-                            angle = 0.5*(self.angles[idx1] + self.angles[idx2])
-                            assert(np.abs(idx1-idx2)==1)
-                            dr = tuple(self.speed*(np.cos(angle)*ex+np.sin(angle)*ey)) # convert to touple for hashable
-                            m[dr]+=1
-        ret = []
+            # centers of the cells
+            xcenter = (i*ax+(i+1)*ax)/2 
+            ycenter = (j*ay+(j+1)*ay)/2 
+            #
+            if trail[i,j]!=0: 
+                coor = np.asarray([xcenter,ycenter])
+                vec=(coor-self.r)
+                if self.norm(vec)<=self.R:
+                    vec = vec/self.norm(vec)
+                    vec_y_ant = np.dot(vec,ey)
+                    idx1=np.where(np.sin(self.angles)<=vec_y_ant)[0] # last element with smaller angle
+                    idx2=np.where(np.sin(self.angles)>=vec_y_ant)[0] # first element with larger angle 
+                    if len(idx1)!=0 and len(idx2)!=0: 
+                        idx1 = idx1[-1]
+                        idx2 = idx2[0]
+                        angle = 0.5*(self.angles[idx1] + self.angles[idx2])
+                        dr = tuple(self.speed*(np.cos(angle)*ex+np.sin(angle)*ey)) # convert to touple for hashable
+                        
+                        if dr not in m:
+                            m[dr]=trail[i,j]
+                        else:
+                            m[dr]+=trail[i,j]
+            ret = []
         for k in m:
             ret.append((k,m[k]))
         return ret
@@ -137,17 +131,18 @@ class Ant:
                 vertices.append(r)        
         idxs = [] 
         
+        # when vision sector is outside the domain
         for r in vertices: 
             if r[0]<0:
                 r[0]=0
             elif r[0]>w.W:
-                r[0]=w.W
+                r[0]=w.W-1
             if r[1]<0:
                 r[1]=0
             elif r[1]>w.H:
-                r[1]=w.H
+                r[1]=w.H-1
 
-            idxs.append(self.get_cell(r))
+            idxs.append(self.get_cell(r,w.N,w.M))
         
         idxs = np.array(idxs)
         idx_x_min=np.min(idxs[:,0])
@@ -162,52 +157,44 @@ class Ant:
                 yield (i,j)
         
 
-
+    def bite(self,area):
+        i,j = self.r
+        i,j = int(i),int(j)
+        if area[i,j]==1:
+            area[i,j]=0
 
 
  
 if __name__ == "__main__":
 
     plt.ion()
-    def run2(ants,cells,T):
-        trail_home = {}
+    trail = np.zeros((w.N,w.M))
+    def run2(ants,T):
+        trail_home = np.zeros((w.N,w.M))
 
-        cells = np.array(cells)
         fig,ax = plt.subplots(1,1)
         def draw_grid(ax):
             ax.vlines(np.linspace(0,w.W,w.W),0,w.H)
             ax.hlines(np.linspace(0,w.H,w.H),0,w.W)
 
-        def plot(ants,T1,T2):            
+        def plot(ants):            
             for ant in ants:
                 path = np.array(ant.path)
-                ax.plot(path[T1:T2,0],path[T1:T2,1],'+')
-                #ax.plot(cells[:,0],cells[:,1],'+') 
+                ax.plot(path[:,0],path[:,1],'+')
                     
         #ant.get_pherom_counts(trail)                
-        for ant in ants:   
-            for t in range(0,T):
+        for t in range(0,T):
+
+
+            for ant in ants:   
                 if t<T//2:
                     ant.mark_trail(trail_home)
                     ant.move()
-                    ant.decide()            
+                    ant.decide(trail)            
                 
-                else:
-                    if t==T//2:
-                       ant.dr = -ant.dr 
+                    #draw_sight(ant)
+                    ax.arrow(ant.r[0],ant.r[1],ant.dr[0],ant.dr[1])
 
-                       ant.move()
-                #ant.mark_trail(trail)
-                    else:
-                        if t%5==0:
-     
-                            #draw_sight(ant)
-                            #print('lalal',ant.dr) 
-                            ax.arrow(ant.r[0],ant.r[1],ant.dr[0],ant.dr[1])
-
-                        ant.decide(trail)            
-                        ax.arrow(ant.r[0],ant.r[1],ant.next_dr[0],ant.next_dr[1],color='red')
-                        ant .move()
 
         plot(ants,0,T//2)    
         plot(ants,T//2,T)
@@ -226,7 +213,6 @@ if __name__ == "__main__":
 
     ants=[Ant(np.array([1,1]),5,np.pi/2,0.1,0)]
 
-    cells = []
 
-    trail=run2(ants,cells,6000)
+    trail=run2(ants,6000)
     

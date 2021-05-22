@@ -2,12 +2,12 @@ from ant import Ant
 import sys
 import world as w
 import numpy as np
-from area import CircArea
+from area import CircArea, CircAreaGranular
 import pygame
 import time
 t1 = time.time()
 t=0
-ants=[Ant(np.array([1,1]),30,np.pi/3,5,t) for _ in range(0,10)]
+ants=[Ant(np.array([w.W/2,w.H/2]),10,2*np.pi/100*i,1,t) for i in range(0,100)]
 pygame.init()
 clock = pygame.time.Clock()
 gameDisplay = pygame.display.set_mode((w.W,w.H))
@@ -18,32 +18,34 @@ green = (0,255,0)
 red = (255,0,0)
 
 
-Lmax = 3000
-food = CircArea(red,np.array([w.W/2,w.H/2]),100)
-home = CircArea(green,np.array([30,30]),30)
+Lmax = 6000
+
+home = CircArea(green,np.array([w.W/2,w.H/2]),10)
+food_granular1 = CircAreaGranular(red,[20,20],20,w.N,w.M)
+food_granular1.create()
+food_granular2 = CircAreaGranular(red,[w.W-20,20],20,w.N,w.M)
+food_granular2.create()
+food_granular3 = CircAreaGranular(red,[w.W-20,w.H-20],20,w.N,w.M)
+food_granular3.create()
+food_granular4 = CircAreaGranular(red,[20,w.H-20],20,w.N,w.M)
+food_granular4.create()
 
 
-trail_scout={}
-trail_return = {}
-def plot_rect(trail,col):
-    for (i,j) in trail:
-        for pherom in trail[(i,j)]:
-            coor = pherom[0]
-            rect = pygame.Rect(coor[0],coor[1],1,1)
-            pygame.draw.rect(gameDisplay,col,rect)
+
+
+trail_scout=np.zeros((w.N,w.M))
+trail_return =np.zeros((w.N,w.M))
+def plot_rect_ant(ant):
+    if ant.scout==True:
+        c =(0,0,255) 
+    else:
+        c = red
+    rect = pygame.Rect(ant.r[0],ant.r[1],1,1)
+    pygame.draw.rect(gameDisplay,c,rect)
+
+     
 
 def plot_rect2(arr,Lmax):
-    print(len(arr)) 
-    if len(arr)>Lmax:
-        els = arr.pop(0)
-        for el in els: 
-            r,m = el
-            if m == True:
-                c = green
-            else:
-                c = red
-            rect = pygame.Rect(r[0],r[1],1,1)
-            pygame.draw.rect(gameDisplay,(0,0,0),rect)
 
     if len(arr)>0:
         els = arr[-1]
@@ -55,29 +57,43 @@ def plot_rect2(arr,Lmax):
                 c = red
             rect = pygame.Rect(r[0],r[1],1,1)
             pygame.draw.rect(gameDisplay,c,rect)
+    
+def plot_trail(trail,idx):
+    col = [0,0,0,200]
+    for i in range(0,w.N)[::1]:
+        for j in range(0,w.M)[::1]:
+            if trail[i,j]>0.5:
+                rect = pygame.Rect(i,j,1,1)
+                col[idx] = np.min([255,int(255*trail[i,j])])
+                pygame.draw.rect(gameDisplay,tuple(col),rect)
 
        
 count_home = 0
 
 pause = False
-arr = []
 while 1:
 
-    #gameDisplay.fill((0,0,0))
-    food.drag(pygame)
-    home.drag(pygame)
-    pygame.draw.circle(gameDisplay,red,tuple(food.r0),food.R)
-
-    pygame.draw.circle(gameDisplay,green,tuple(home.r0),home.R)
-
+    gameDisplay.fill((0,0,0))
+    #food.drag(pygame)
+    #home.drag(pygame)
      
     if pause==False:
-        arr1=[]
-        #plot_rect(trail_scout,green)
-        #plot_rect(trail_return,red)
-        plot_rect2(arr,Lmax)        
+
+        food_granular1.plot(pygame,gameDisplay)
+        food_granular2.plot(pygame,gameDisplay)
+        food_granular3.plot(pygame,gameDisplay)
+        food_granular4.plot(pygame,gameDisplay)
+
+        plot_trail(trail_scout,1)
+        plot_trail(trail_return,0)
+
+
+
         for ant in ants:   
-            if food.inside(ant.r) and ant.scout==True:
+            
+            #plot_rect_ant(ant)
+            if (food_granular1.inside(ant.r) or food_granular2.inside(ant.r) or food_granular3.inside(ant.r) or food_granular4.inside(ant.r))and ant.scout==True:
+
                 ant.scout = False 
                 ant.dr = -ant.dr
                 ant.t = t
@@ -85,7 +101,8 @@ while 1:
 
             if home.inside(ant.r) and ant.scout==False:
                 count_home += 1
-                print('count home {}'.format(count_home))
+
+                print('home {}'.format(count_home))
                 ant.dr = -ant.dr
                 ant.scout = True
                 col =green 
@@ -94,21 +111,38 @@ while 1:
             ant.t = t
             if ant.scout == True:
                 ant.mark_trail(trail_scout)
-                arr1.append((ant.r,ant.scout))
+                ant.bite(food_granular1.arr)
+                ant.bite(food_granular2.arr)
+                ant.bite(food_granular3.arr)
+                ant.bite(food_granular4.arr)
+
 
                 ant.move()
                 ant.decide(trail_return)            
             else:
                 ant.mark_trail(trail_return)
-                arr1.append((ant.r,ant.scout))
-                
+                ant.bite(food_granular1.arr)
+                ant.bite(food_granular2.arr)
+                ant.bite(food_granular3.arr)
+                ant.bite(food_granular4.arr)
+
+
                 ant.move()
                 ant.decide(trail_scout)            
-        
+            plot_rect_ant(ant)
         w.evap(trail_scout, Lmax,t)
         w.evap(trail_return, Lmax,t)
-        arr.append(arr1)
+        trail_scout=w.diffuse(trail_scout)
+        trail_return=w.diffuse(trail_return)
+     
         t += 1
+        if t%100==0:
+            print(t)
+    #pygame.draw.circle(gameDisplay,red,tuple(food.r0),food.R)
+
+    pygame.draw.circle(gameDisplay,green,tuple(home.r0),home.R)
+
+
     pygame.display.update()
 
     for event in pygame.event.get():
