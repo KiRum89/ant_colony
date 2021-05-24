@@ -4,7 +4,7 @@ import matplotlib
 from matplotlib.animation import FuncAnimation
 from ant import Ant
 fig,ax = plt.subplots(1,1)
-
+#use for testing ant trajectories
 class LineBuilder:
     def __init__(self, line):
         self.line = line

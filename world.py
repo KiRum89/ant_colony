@@ -14,7 +14,7 @@ def evap(trail, timer,ctime):
     trail[np.where(trail<0)]=0
 
 def diffuse(trail):
-    M = 1/658*np.array([[1,1,1],[1,650,1],[1,1,1]])    
+    M = 1/(1e3+8)*np.array([[1,1,1],[1,1e3,1],[1,1,1]])    
     return convolve(trail, M, mode='constant', cval=0.0)
     
 

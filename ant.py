@@ -101,7 +101,7 @@ class Ant:
                         idx1 = idx1[-1]
                         idx2 = idx2[0]
                         angle = 0.5*(self.angles[idx1] + self.angles[idx2])
-                        dr = tuple(self.speed*(np.cos(angle)*ex+np.sin(angle)*ey)) # convert to touple for hashable
+                        dr = tuple(self.speed*(np.cos(angle)*ex+np.sin(angle)*ey)) # convert to tuple for hashable
                         
                         if dr not in m:
                             m[dr]=trail[i,j]

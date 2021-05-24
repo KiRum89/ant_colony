@@ -7,7 +7,7 @@ import pygame
 import time
 t1 = time.time()
 t=0
-ants=[Ant(np.array([w.W/2,w.H/2]),10,2*np.pi/100*i,1,t) for i in range(0,100)]
+ants=[Ant(np.array([w.W/2,w.H/2]),10,2*np.pi/100*i,1,t) for i in range(0,500)]
 pygame.init()
 clock = pygame.time.Clock()
 gameDisplay = pygame.display.set_mode((w.W,w.H))
@@ -29,6 +29,18 @@ food_granular3 = CircAreaGranular(red,[w.W-20,w.H-20],20,w.N,w.M)
 food_granular3.create()
 food_granular4 = CircAreaGranular(red,[20,w.H-20],20,w.N,w.M)
 food_granular4.create()
+
+#obstacle=np.zeros()
+def draw():
+    x,y=pygame.mouse.get_pos()
+    state = pygame.mouse.get_pressed(num_buttons=3) 
+    
+    if state[0]==True:
+        print(x,y)
+        arr[x,y]=1 
+        x0,y0 = pygame.mouse.get_pos()
+        rect = pygame.Rect(x,y,5,5)
+        pygame.draw.rect(gameDisplay,(255,0,0),rect)
 
 
 
@@ -58,25 +70,34 @@ def plot_rect2(arr,Lmax):
             rect = pygame.Rect(r[0],r[1],1,1)
             pygame.draw.rect(gameDisplay,c,rect)
     
-def plot_trail(trail,idx):
-    col = [0,0,0,200]
-    for i in range(0,w.N)[::1]:
-        for j in range(0,w.M)[::1]:
-            if trail[i,j]>0.5:
-                rect = pygame.Rect(i,j,1,1)
-                col[idx] = np.min([255,int(255*trail[i,j])])
-                pygame.draw.rect(gameDisplay,tuple(col),rect)
+def plot_trail(trail1,trail2):
+    N,M = trail1.shape
+    arr = np.zeros((N,M,3))
+    if trail1.max()!=0:
+        arr[:,:,0]=trail1/trail1.max()*2550
+    else:
+        arr[:,:,0] = trail1
+    if trail2.max()!=0:
+        arr[:,:,2]=trail2/trail2.max()*2550
+    else:
+        arr[:,:,2]=trail2
+    
 
+    
+    arr=arr.astype('int')
+    pygame.surfarray.blit_array(gameDisplay,arr)
+
+    return arr
        
 count_home = 0
 
 pause = False
 while 1:
 
-    gameDisplay.fill((0,0,0))
+    #gameDisplay.fill((0,0,0))
     #food.drag(pygame)
     #home.drag(pygame)
-     
+    #draw()     
     if pause==False:
 
         food_granular1.plot(pygame,gameDisplay)
@@ -84,8 +105,7 @@ while 1:
         food_granular3.plot(pygame,gameDisplay)
         food_granular4.plot(pygame,gameDisplay)
 
-        plot_trail(trail_scout,1)
-        plot_trail(trail_return,0)
+        arr = plot_trail(trail_scout,trail_return)
 
 
 
@@ -109,6 +129,7 @@ while 1:
                
 
             ant.t = t
+            oldpos = ant.r
             if ant.scout == True:
                 ant.mark_trail(trail_scout)
                 ant.bite(food_granular1.arr)
@@ -129,7 +150,7 @@ while 1:
 
                 ant.move()
                 ant.decide(trail_scout)            
-            plot_rect_ant(ant)
+    
         w.evap(trail_scout, Lmax,t)
         w.evap(trail_return, Lmax,t)
         trail_scout=w.diffuse(trail_scout)
@@ -146,13 +167,13 @@ while 1:
     pygame.display.update()
 
     for event in pygame.event.get():
+
         if event.type == pygame.KEYDOWN:
             if event.key == pygame.K_a:
-                trail_return={}
-                trail_scout={}
 
                 t = 0
-                ants=[Ant(home.r0,30,np.pi/3,5,t) for _ in range(0,10)]
+                ants=[Ant(np.array([w.W/2,w.H/2]),10,2*np.pi/100*i,1,t) for i in range(0,100)]
+
                 pause = not(pause)
 
         if event.type == pygame.QUIT:
